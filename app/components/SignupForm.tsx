@@ -22,16 +22,19 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
 
   const [valid, setValid] = useState(false);
   const [errorMessage, setErrorMessage] = useState();
+  const [loading, setLoading] = useState(false);
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
+    setLoading(true);
     axios
       .post("http://localhost:3001/api/register", data)
       .then((response) => {
         console.log(response);
-        toast.success("Account Created Succefully.");
+        toast.success("Account was created.");
         onClose();
       })
       .catch((err) => {
+        setLoading(false);
         setErrorMessage(err.response.data);
       });
   };
@@ -100,7 +103,11 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
       </div>
       <button className="btn btn-neutral mt-4 hover:text-white">
         {" "}
-        Sign Up{" "}
+        {loading ? (
+          <span className="loading loading-infinity loading-md"></span>
+        ) : (
+          "Sign Up"
+        )}
       </button>
     </form>
   );

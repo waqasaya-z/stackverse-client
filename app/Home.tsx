@@ -39,6 +39,7 @@ const HomePage = ({
       })
       .catch((err) => {
         setErrorMessage(err.response.data);
+        setLoading(false);
       });
   };
 
