@@ -1,16 +1,36 @@
 "use client";
-import axios from "axios";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios, { AxiosError, AxiosResponse } from "axios";
+import { useCallback, useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import toast from "react-hot-toast";
+import { useMutation } from "react-query";
+import { z } from "zod";
 
-type Inputs = {
-  firstName: string;
-  lastName: string;
-  userEmail: string;
-  hashPassword: string;
-  confirmPassword: string;
-};
+const validationSchema = z
+  .object({
+    firstName: z
+      .string()
+      .min(3, { message: "First and Last Name must be atleast 3 characters" }),
+    lastName: z
+      .string()
+      .min(3, { message: "First and Last Name must be atleast 3 characters" }),
+    userEmail: z.string().min(1, { message: "Email is required" }).email({
+      message: "Must be a valid email"
+    }),
+    hashPassword: z
+      .string()
+      .min(6, { message: "Password must be atleast 6 characters" }),
+    confirmPassword: z
+      .string()
+      .min(1, { message: "Confirm Password is required" })
+  })
+  .refine((data) => data.hashPassword === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Password don't match"
+  });
+
+type ValidationSchema = z.infer<typeof validationSchema>;
 
 const SignupForm = ({ onClose }: { onClose: () => void }) => {
   const {
@@ -18,34 +38,74 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
     handleSubmit,
     watch,
     formState: { errors }
-  } = useForm<Inputs>();
+  } = useForm<ValidationSchema>({
+    resolver: zodResolver(validationSchema)
+  });
 
-  const [valid, setValid] = useState(false);
-  const [errorMessage, setErrorMessage] = useState();
-  const [loading, setLoading] = useState(false);
-
-  const onSubmit: SubmitHandler<Inputs> = (data) => {
-    setLoading(true);
-    axios
-      .post("http://localhost:3001/api/register", data)
-      .then((response) => {
-        console.log(response);
-        toast.success("Account was created.");
-        onClose();
-      })
-      .catch((err) => {
-        setLoading(false);
-        setErrorMessage(err.response.data);
-      });
+  const registerUser = async (data: ValidationSchema) => {
+    const res = await axios.post("http://localhost:3001/api/register", data);
+    return res;
   };
+
+  const mutation = useMutation<
+    AxiosResponse<any, any>,
+    AxiosError<any, any>,
+    ValidationSchema,
+    unknown
+  >(registerUser);
+
+
+  const onSubmit: SubmitHandler<ValidationSchema> = useCallback(
+    (data: ValidationSchema) => {
+      mutation.mutate(data, {
+        onSuccess: (data, variable, context) => {
+          toast.success("Account was created.");
+          onClose();
+        },
+        onError: (error) => {
+          toast.error("Failed to Create the Account");
+          console.log(error);
+        }
+      });
+    },
+    [mutation, onClose]
+  );
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col mt-6 justify-center items-center w-full"
     >
-      {errorMessage && (
-        <p className="text-red-700 font-semibold text-sm"> {errorMessage} </p>
+      {mutation.error && (
+        <div>
+          {mutation.error.response &&
+          mutation.error.response.data &&
+          typeof mutation.error.response.data === "string" &&
+          mutation.error.response.headers["content-type"]?.includes(
+            "text/html"
+          ) &&
+          mutation.error.response.data.startsWith("<!DOCTYPE html>") ? (
+            <p className="text-red-700 font-semibold text-sm">
+              An error occurred. Please try again later.
+            </p>
+          ) : (
+            <p className="text-red-700 font-semibold text-sm">
+              {mutation.error.response?.data}
+            </p>
+          )}
+        </div>
+      )}
+      {errors.firstName && (
+        <p className="text-xs italic text-red-500 mt-2">
+          {" "}
+          {errors.firstName?.message}
+        </p>
+      )}
+      {errors.lastName && (
+        <p className="text-xs italic text-red-500 mt-2">
+          {" "}
+          {errors.lastName?.message}
+        </p>
       )}
       <div className="flex mb-2 gap-1 w-4/5">
         <input
@@ -55,6 +115,7 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
           placeholder="First Name"
           {...register("firstName", { required: true })}
         />
+
         <input
           type="text"
           className="border p-2 w-1/2"
@@ -65,6 +126,7 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
       </div>
       <div className="flex flex-col gap-2 w-4/5">
         <input
+          id="email"
           type="email"
           autoComplete="email"
           required
@@ -72,6 +134,12 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
           placeholder="Email"
           {...register("userEmail", { required: true })}
         />
+        {errors.userEmail && (
+          <p className="text-xs italic text-red-500 mt-2">
+            {" "}
+            {errors.userEmail?.message}
+          </p>
+        )}
         <input
           type="password"
           className="border p-2"
@@ -79,31 +147,30 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
           placeholder="Password"
           {...register("hashPassword", { required: true })}
         />
+        {errors.hashPassword && (
+          <p className="text-xs italic text-red-500 mt-2">
+            {" "}
+            {errors.hashPassword?.message}
+          </p>
+        )}
         <input
           type="password"
           className="border p-2"
           required
           placeholder="Confirm Password"
           {...register("confirmPassword", {
-            required: true,
-            validate: (val: string) => {
-              if (watch("hashPassword") != val) {
-                setValid(true);
-                return "";
-              }
-            }
+            required: true
           })}
         />
-        {valid && (
-          <p className="text-red-700 font-semibold text-sm">
-            {" "}
-            Password did not match.{" "}
+        {errors.confirmPassword && (
+          <p className="text-xs italic text-red-500 mt-2">
+            {errors.confirmPassword?.message}
           </p>
         )}
       </div>
       <button className="btn btn-neutral mt-4 hover:text-white">
         {" "}
-        {loading ? (
+        {mutation.isLoading ? (
           <span className="loading loading-infinity loading-md"></span>
         ) : (
           "Sign Up"

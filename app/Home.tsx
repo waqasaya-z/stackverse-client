@@ -1,14 +1,20 @@
 "use client";
-import axios, { AxiosResponse } from "axios";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { useRouter } from "next/navigation";
 import { Dispatch, SetStateAction, useCallback } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useMutation } from "react-query";
+import { z } from "zod";
 
-type LoginForm = {
-  formEmail: string;
-  formPassword: string;
-};
+const validationSchema = z.object({
+  formEmail: z.string().min(1, { message: "Email is required" }).email({
+    message: "Must be a valid email"
+  }),
+  formPassword: z.string().min(1, { message: "Invalid Password" })
+});
+
+type LoginValidation = z.infer<typeof validationSchema>;
 
 const HomePage = ({
   setIsOpen
@@ -19,12 +25,14 @@ const HomePage = ({
     register,
     handleSubmit,
     formState: { errors }
-  } = useForm<LoginForm>();
+  } = useForm<LoginValidation>({
+    resolver: zodResolver(validationSchema)
+  });
 
   const router = useRouter();
 
-  const validateUser = async (data: LoginForm) => {
-    const response = await axios.post<LoginForm>(
+  const validateUser = async (data: LoginValidation) => {
+    const response = await axios.post<LoginValidation>(
       "http://localhost:3001/api/users",
       data
     );
@@ -32,12 +40,14 @@ const HomePage = ({
     return response;
   };
 
-  const mutation = useMutation<AxiosResponse<any, any>, Error, LoginForm>(
-    validateUser
-  );
+  const mutation = useMutation<
+    AxiosResponse<any, any>,
+    AxiosError<any, any>,
+    LoginValidation
+  >(validateUser);
 
-  const onSubmit: SubmitHandler<LoginForm> = useCallback(
-    (data: LoginForm) => {
+  const onSubmit: SubmitHandler<LoginValidation> = useCallback(
+    (data: LoginValidation) => {
       mutation.mutate(data, {
         onSuccess: (data, variables, context) => {
           router.push("/home");
@@ -54,12 +64,23 @@ const HomePage = ({
         className="flex flex-col font-medium gap-2 w-full px-10 pt-10 mb-4"
       >
         {mutation.error && (
-          <p className="text-red-700 font-semibold text-sm">
-            {" "}
-            {(mutation.error as any)?.response?.data ||
-              (mutation.error as Error)?.message ||
-              "An error occurred"}
-          </p>
+          <div>
+            {mutation.error.response &&
+            mutation.error.response.data &&
+            typeof mutation.error.response.data === "string" &&
+            mutation.error.response.headers["content-type"]?.includes(
+              "text/html"
+            ) &&
+            mutation.error.response.data.startsWith("<!DOCTYPE html>") ? (
+              <p className="text-red-700 font-semibold text-sm">
+                An error occurred. Please try again later.
+              </p>
+            ) : (
+              <p className="text-red-700 font-semibold text-sm">
+                {mutation.error.response?.data}
+              </p>
+            )}
+          </div>
         )}
         <div className="gap-2">
           <label htmlFor="email"> Username </label>
@@ -72,6 +93,12 @@ const HomePage = ({
             placeholder="Email or Phone number"
             {...register("formEmail", { required: true })}
           />
+          {errors.formEmail && (
+            <p className="text-xs italic text-red-500 mt-2">
+              {" "}
+              {errors.formEmail?.message}
+            </p>
+          )}
         </div>
         <div className="gap-2">
           <label htmlFor="password"> Password </label>
@@ -83,6 +110,12 @@ const HomePage = ({
             placeholder="Password"
             {...register("formPassword", { required: true })}
           />
+          {errors.formPassword && (
+            <p className="text-xs italic text-red-500 mt-2">
+              {" "}
+              {errors.formPassword?.message}
+            </p>
+          )}
         </div>
         <button className="border hover:border-black p-2 mt-2 rounded-lg">
           {" "}
