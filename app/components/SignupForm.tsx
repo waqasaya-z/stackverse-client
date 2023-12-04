@@ -64,7 +64,6 @@ const SignupForm = ({ onClose }: { onClose: () => void }) => {
         },
         onError: (error) => {
           toast.error("Failed to Create the Account");
-          console.log(error);
         }
       });
     },

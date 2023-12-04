@@ -11,7 +11,7 @@ const validationSchema = z.object({
   formEmail: z.string().min(1, { message: "Email is required" }).email({
     message: "Must be a valid email"
   }),
-  formPassword: z.string().min(1, { message: "Invalid Password" })
+  formPassword: z.string().min(1, { message: "Password is required" })
 });
 
 type LoginValidation = z.infer<typeof validationSchema>;
@@ -32,11 +32,13 @@ const HomePage = ({
   const router = useRouter();
 
   const validateUser = async (data: LoginValidation) => {
-    const response = await axios.post<LoginValidation>(
-      "http://localhost:3001/api/users",
+    const response = await axios.post(
+      "http://localhost:3001/api/login",
       data
     );
-
+    console.log(response)
+    const accessToken = response.data.accessToken
+     localStorage.setItem('accessToken', accessToken);
     return response;
   };
 
