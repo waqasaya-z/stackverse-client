@@ -1,6 +1,12 @@
+'use client'
+import { TokenContext } from "@/context/UserAuth";
 import Link from "next/link";
+import { useContext } from "react";
 
 const Navbar = () => {
+
+ const token = useContext(TokenContext);
+
   return (
     <nav className="navbar bg-base-100">
       <div className="flex-1">
@@ -8,10 +14,10 @@ const Navbar = () => {
           StackVerse
         </Link>
       </div>
-      <div className="dropdown dropdown-end hidden">
+      <div className="dropdown dropdown-end">
         <div tabIndex={0} className="btn btn-ghost">
           <div className="w-10">
-            <p> User </p>
+            <p> {token?.email} </p>
           </div>
         </div>
         <ul
@@ -28,7 +34,7 @@ const Navbar = () => {
             <a>Settings</a>
           </li>
           <li>
-            <Link href="/login">Login</Link>
+            <Link href="/login">Logout</Link>
           </li>
         </ul>
       </div>

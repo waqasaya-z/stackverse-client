@@ -1,7 +1,9 @@
 "use client";
 import axios from "axios";
-import React from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "react-query";
+import SimpleMDE from "react-simplemde-editor";
+import "easymde/dist/easymde.min.css";
 
 type User = {
   id: string
@@ -23,6 +25,7 @@ const HomePage = () => {
     return response.data.user;
   }
 
+
   const {
     data: user,
     error,
@@ -32,13 +35,15 @@ const HomePage = () => {
     queryFn: fetchUserInfo
   });
 
+
   if (error || !user || !user.firstName) {
     return <div>Error fetching user data</div>;
   }
 
   return (
     <>
-      <h1 className="font-semibold text-4xl"> Welcome {user.firstName} </h1>
+      <h1 className="font-semibold text-4xl"> Hello {user.firstName} </h1>
+      <SimpleMDE className="w-3/4 h-28" options={{ spellChecker: false,  }} />
     </>
   );
 };

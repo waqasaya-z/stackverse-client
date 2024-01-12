@@ -2,7 +2,7 @@ import React from 'react'
 
 const LoadingHome = () => {
   return (
-    <div>Loading...</div>
+    <span className="loading loading-infinity loading-md"></span>
   )
 }
 

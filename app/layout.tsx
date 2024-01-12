@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "./Navbar";
 import { Toaster } from "react-hot-toast";
 import QueryClientProvider from "@/context/QueryClient";
+import UserAuthProvider from "@/context/UserAuth";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,9 +22,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <QueryClientProvider>
-          <Navbar />
-          {children}
-          <Toaster />
+          <UserAuthProvider>
+            <Navbar />
+            {children}
+            <Toaster />
+          </UserAuthProvider>
         </QueryClientProvider>
       </body>
     </html>
